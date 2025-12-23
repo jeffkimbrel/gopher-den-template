@@ -22,8 +22,6 @@ with_gopher_con(function(c) {
   ")
 }) |>
   knitr::kable()
-
-# DT::datatable(edges, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
 ```
 
 ## Quick provenance: which assemblies feed which samples?
@@ -48,18 +46,14 @@ with_gopher_con(function(c) {
   ")
 }) |>
   knitr::kable()
-
-# DT::datatable(prov, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
 ```
 
 # Graph
 
 ```{r}
-library(igraph)
-
 e = with_gopher_con(function(c) {
   DBI::dbReadTable(c, "edge")}) |>
-  as_tibble()
+  tidyr::as_tibble()
 
 graph = e |>
   select(child_uid, parent_uid) %>%
@@ -75,21 +69,17 @@ V(graph)$name = df$ID
 
 E(graph)$edge_type = e$edge_type
 
+# make a layout so node types stay on the same level
 layers <- as.integer(factor(V(graph)$type, levels = rev(c("sample", "read_set", "assembly", "mag"))))
-
-lay <- layout_with_sugiyama(graph, layers = layers)$layout
-
-
+lay <- igraph::layout_with_sugiyama(graph, layers = layers)$layout
 
 ggraph::ggraph(graph, layout = lay) + # or tree
   ggraph::geom_edge_diagonal(aes(edge_color = E(graph)$edge_type), linewidth = 2) + 
-  ggraph::scale_edge_color_manual(values = c("collected_from" = "cornflowerblue", 
-                                             "assembled_from" = "green", 
-                                             "binned_from" = "brown", 
-                                             "observed_in" = "yellow")) +
-  ggraph::geom_node_point(size = 10, pch = 21, aes(fill = type)) + 
-  ggraph::geom_node_text(aes(label = name)) +
-  coord_flip() +
-  theme_void()
-
+  ggraph::geom_node_point(size = 12, pch = 21, aes(fill = type)) + 
+  ggraph::geom_node_text(aes(label = name), size = 3) +
+  scale_fill_brewer(palette = 8) +
+  ggraph::scale_edge_color_brewer(palette = 5, direction = 1) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_void() +
+  labs(fill = "Object type", edge_color = "Edge type")
 ```
