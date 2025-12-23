@@ -1,0 +1,81 @@
+---
+title: "Overview"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: preamble
+#| echo: false
+cfg <- yaml::read_yaml(here::here("_quarto.yml"))
+db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
+
+options(gopheR.db_path = dirname(db_path)) 
+```
+
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT
+      (SELECT COUNT(*) FROM sample)   AS samples,
+      (SELECT COUNT(*) FROM read_set) AS read_sets,
+      (SELECT COUNT(*) FROM assembly) AS assemblies,
+      (SELECT COUNT(*) FROM mag)      AS mags,
+      (SELECT COUNT(*) FROM edge)     AS edges
+  ")
+}) |>
+  pivot_longer(cols = everything()) |>
+  ggplot(aes(x = name, y = value)) +
+    geom_col()
+```
+
+## Example query: MAGs in high moisture samples
+
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT DISTINCT
+      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS mag_id
+    FROM edge e
+    JOIN read_set r
+      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
+    JOIN measurement meas
+      ON meas.sample_id = r.sample_id
+     AND meas.variable = 'moisture'
+    WHERE e.edge_type = 'observed_in'
+      AND meas.value > 50
+    ORDER BY mag_id
+  ")
+}) |>
+  knitr::kable()
+
+```
+
+## Moisture distribution (by sample)
+
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT s.sample_id, s.biome, s.site, m.value AS moisture
+    FROM measurement m
+    JOIN sample s ON s.sample_id = m.sample_id
+    WHERE m.variable = 'moisture'
+    ORDER BY s.sample_id
+  ")
+}) |>
+  ggplot(aes(x = moisture)) +
+  geom_histogram(bins = 10) +
+  labs(x = "Moisture (%)", y = "Number of samples")
+```
+
+
+
+
+

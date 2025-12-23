@@ -1,0 +1,97 @@
+---
+title: "Graph views"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: preamble
+#| echo: false
+cfg <- yaml::read_yaml(here::here("_quarto.yml"))
+db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
+
+options(gopheR.db_path = dirname(db_path)) 
+```
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+This page reads the `edge` table directly to show provenance-style relationships.
+
+```{r}
+# source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
+
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT edge_type, child_uid, parent_uid, role, weight, pipeline_id, created_at
+    FROM edge
+    ORDER BY edge_type, child_uid
+  ")
+}) |>
+  knitr::kable()
+
+# DT::datatable(edges, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
+```
+
+## Quick provenance: which assemblies feed which samples?
+
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT
+      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS assembly_id,
+      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id,
+      e.role,
+      r.sample_id,
+      s.biome,
+      s.site
+    FROM edge e
+    JOIN read_set r
+      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
+    JOIN sample s
+      ON s.sample_id = r.sample_id
+    WHERE e.edge_type = 'assembled_from'
+    ORDER BY assembly_id, readset_id
+  ")
+}) |>
+  knitr::kable()
+
+# DT::datatable(prov, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
+```
+
+# Graph
+
+```{r}
+library(igraph)
+
+e = DBI::dbReadTable(gopher_con(), "edge") |>
+  as_tibble()
+
+graph = e |>
+  select(child_uid, parent_uid) %>%
+  as.matrix() %>%
+  igraph::graph_from_edgelist(directed = T)
+
+df = V(graph)$name |>
+  enframe() |>
+  separate(value, into = c("TYPE", "ID"), sep = ":")
+
+V(graph)$type = df$TYPE
+V(graph)$name = df$ID
+
+E(graph)$edge_type = e$edge_type
+
+ggraph::ggraph(graph, layout = "auto") +
+  # jak_theme() +
+  ggraph::geom_edge_link(aes(edge_color = E(graph)$edge_type), linewidth = 2) + 
+  ggraph::scale_edge_color_manual(values = c("collected_from" = "cornflowerblue", 
+                                             "assembled_from" = "green", 
+                                             "binned_from" = "brown", 
+                                             "observed_in" = "yellow")) +
+  ggraph::geom_node_point(size = 10, pch = 21, aes(fill = type)) + 
+  ggraph::geom_node_text(aes(label = name)) +
+  theme_void()
+
+```

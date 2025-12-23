@@ -1,0 +1,47 @@
+project:
+  type: website
+  output-dir: _site
+  # pre-render: R/pre_render.R
+  render:
+    - index.qmd
+    - samples.qmd
+    - mags.qmd
+    - graph.qmd
+    - appendix-sql.qmd
+    - mag/*.qmd
+
+gopher:
+  db_dir: data
+  db_file: gopheR_db.sqlite
+  
+website:
+  title: "Genomic Objects & Provenance for Environmental Research (gopheR) Browser"
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - text: "Overview"
+        href: index.html
+      - text: "Samples"
+        href: samples.html
+      - text: "MAGs"
+        href: mags.html
+      - text: "Graph"
+        href: graph.html
+      - text: "SQL"
+        href: appendix-sql.html
+  page-navigation: true
+  back-to-top-navigation: true
+
+format:
+  html:
+    theme: sandstone
+    toc: true
+    code-fold: false
+    code-tools: false
+
+execute:
+  warning: false
+  message: false
+  freeze: false
+  echo: false

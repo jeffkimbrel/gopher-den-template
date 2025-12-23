@@ -1,0 +1,93 @@
+---
+title: "MAG {{< meta mag_id >}}"
+params:
+  mag_id: "M001"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: preamble
+#| echo: false
+cfg <- yaml::read_yaml(here::here("_quarto.yml"))
+db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
+
+options(gopheR.db_path = dirname(db_path)) 
+```
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+```{r}
+mag_id <- params$mag_id
+
+with_gopher_con(function(c) {
+  gopher_query(
+    c,
+    "
+    SELECT *
+    FROM mag
+    WHERE mag_id = ?
+    ",
+    params = list(mag_id)
+  )
+}) |>
+  knitr::kable()
+```
+
+## Provenance (MAG → Assembly → ReadSets → Samples)
+
+```{r}
+with_gopher_con(function(c) mag_provenance(c, mag_id)) |>
+  knitr::kable()
+```
+
+## Occurrences (MAG observed in ReadSets / Samples)
+
+```{r}
+occ <- with_gopher_con(function(c) {
+  gopher_query(
+    c,
+    "
+    SELECT
+      substr(e.child_uid, instr(e.child_uid, ':') + 1)   AS mag_id,
+      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id,
+      r.sample_id,
+      s.site,
+      s.collected_date,
+      s.biome,
+      meas.value AS moisture,
+      meas.unit  AS moisture_unit,
+      e.weight   AS rel_abundance,
+      e.evidence
+    FROM edge e
+    JOIN read_set r
+      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
+    JOIN sample s
+      ON s.sample_id = r.sample_id
+    LEFT JOIN measurement meas
+      ON meas.sample_id = s.sample_id
+     AND meas.variable = 'moisture'
+    WHERE e.edge_type = 'observed_in'
+      AND e.child_uid = ?
+    ORDER BY rel_abundance DESC
+    ",
+    params = list(paste0("mag:", mag_id))
+  )
+})
+
+
+occ |>
+  knitr::kable()
+```
+
+## Environmental context (moisture by sample for this MAG)
+
+```{r}
+occ %>%
+  distinct(sample_id, moisture, moisture_unit, biome, site) %>%
+  arrange(desc(moisture)) |>
+  knitr::kable()
+```

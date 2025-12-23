@@ -1,0 +1,62 @@
+---
+title: "MAGs"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: preamble
+#| echo: false
+cfg <- yaml::read_yaml(here::here("_quarto.yml"))
+db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
+
+options(gopheR.db_path = dirname(db_path)) 
+```
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+```{r}
+# source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
+
+mags <- with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT *
+    FROM mag
+    ORDER BY completeness DESC
+  ")
+}) %>%
+  mutate(profile = glue::glue("[{mag_id}](mag/{mag_id}.html)"))
+
+mags %>%
+  mutate(
+    MAG = glue::glue('<a href="mag/{mag_id}.html">{mag_id}</a>')
+  ) %>%
+  select(MAG, completeness, contamination, taxonomy) |>
+  knitr::kable()
+```
+
+## Filter MAGs by environmental metadata (moisture)
+
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT DISTINCT
+      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS mag_id
+    FROM edge e
+    JOIN read_set r
+      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
+    JOIN measurement meas
+      ON meas.sample_id = r.sample_id
+     AND meas.variable = 'moisture'
+    WHERE e.edge_type = 'observed_in'
+      AND meas.value > 50
+    ORDER BY mag_id
+  ")
+}) |>
+  knitr::kable()
+
+# DT::datatable(mags_moist, options = list(pageLength = 25))
+```

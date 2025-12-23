@@ -1,0 +1,44 @@
+---
+title: "Samples"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: preamble
+#| echo: false
+cfg <- yaml::read_yaml(here::here("_quarto.yml"))
+db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
+
+options(gopheR.db_path = dirname(db_path)) 
+```
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+```{r}
+# source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
+
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT
+      s.*,
+      m.value AS moisture,
+      m.unit  AS moisture_unit
+    FROM sample s
+    LEFT JOIN measurement m
+      ON m.sample_id = s.sample_id
+     AND m.variable = 'moisture'
+    ORDER BY s.sample_id
+  ")
+}) |>
+  knitr::kable()
+
+# DT::datatable(
+#   samples,
+#   filter = "top",
+#   options = list(pageLength = 25, scrollX = TRUE)
+# )
+```
