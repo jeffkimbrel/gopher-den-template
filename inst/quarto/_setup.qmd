@@ -1,0 +1,35 @@
+
+```{r}
+library(yaml)
+
+# Prefer Quarto-provided project root during `quarto render`
+proj <- Sys.getenv("QUARTO_PROJECT_DIR")
+if (!nzchar(proj)) proj <- Sys.getenv("QUARTO_PROJECT_ROOT")
+
+# Fallback for interactive/dev runs (not in quarto render)
+if (!nzchar(proj)) {
+  # walk up from current dir until we find _quarto.yml
+  p <- normalizePath(".", mustWork = TRUE)
+  for (i in 1:20) {
+    if (file.exists(file.path(p, "_quarto.yml"))) { proj <- p; break }
+    parent <- dirname(p)
+    if (identical(parent, p)) break
+    p <- parent
+  }
+}
+
+if (!nzchar(proj)) stop("Cannot locate Quarto project root (no _quarto.yml found).", call. = FALSE)
+
+cfg <- yaml::read_yaml(file.path(proj, "_quarto.yml"))
+
+# Resolve db_dir relative to the Quarto project root
+db_dir <- normalizePath(file.path(proj, cfg$params$db_dir), mustWork = TRUE)
+
+options(
+  gopheR.db_path = db_dir,
+  gopheR.db_file = cfg$params$db_file
+)
+
+# optional debug (remove later)
+message("DB dir: ", getOption("gopheR.db_path"))
+```

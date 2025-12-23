@@ -4,14 +4,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r}
-#| label: preamble
-#| echo: false
-cfg <- yaml::read_yaml(here::here("_quarto.yml"))
-db_path <- file.path(here::here(cfg$gopher$db_dir), cfg$gopher$db_file)
-
-options(gopheR.db_path = dirname(db_path)) 
-```
+{{< include _setup.qmd >}}
 
 ```{r}
 library(tidyverse)

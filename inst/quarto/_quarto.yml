@@ -10,10 +10,10 @@ project:
     - appendix-sql.qmd
     - mag/*.qmd
 
-gopher:
-  db_dir: data
+params:
+  db_dir: ../../data
   db_file: gopheR_db.sqlite
-  
+
 website:
   title: "Genomic Objects & Provenance for Environmental Research (gopheR) Browser"
   sidebar:
