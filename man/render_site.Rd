@@ -4,13 +4,13 @@
 \alias{render_site}
 \title{Render the Quarto site bundled with this package}
 \usage{
-render_site(output_dir = NULL, site_dir = NULL, quiet = TRUE, ...)
+render_site(site_dir = "inst/quarto", output_dir = NULL)
 }
 \arguments{
+\item{site_dir}{Override the site directory. If NULL, it auto-detects.}
+
 \item{output_dir}{Where to write the rendered site. If NULL, Quarto uses its default
 (usually \verb{_site/} inside the site directory).}
-
-\item{site_dir}{Override the site directory. If NULL, it auto-detects.}
 
 \item{quiet}{If TRUE, suppress Quarto output.}
 
@@ -18,6 +18,7 @@ render_site(output_dir = NULL, site_dir = NULL, quiet = TRUE, ...)
 }
 \value{
 Invisibly returns the path to the rendered output directory (best effort).
+Render the Quarto site bundled with this package
 }
 \description{
 This renders the Quarto project located at \verb{inst/quarto/}.
