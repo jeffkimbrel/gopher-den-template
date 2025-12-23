@@ -11,7 +11,7 @@ project:
     - mag/*.qmd
 
 params:
-  db_dir: ../../data
+  db_dir: data
   db_file: gopheR_db.sqlite
 
 website:

@@ -26,40 +26,40 @@ write_templates <- function(out_dir,
                             edge_include_helper_cols = TRUE,
                             n_blank_rows = 50) {
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  with_gopher_con(function(con) {
+
+  gopheR::with_gopher_con(function(con) {
     if (is.null(tables)) {
       tables <- DBI::dbListTables(con)
       tables <- tables[!grepl("^sqlite_", tables)]
     }
-    
+
     written <- character(0)
-    
+
     for (tbl in tables) {
       cols <- DBI::dbListFields(con, tbl)
       cols <- setdiff(cols, exclude_cols)
-      
+
       # edge-specific helper columns (optional)
       if (identical(tbl, "edge") && isTRUE(edge_include_helper_cols)) {
         helper <- c("child_type", "child_id", "parent_type", "parent_id")
         # keep canonical columns too; helpers come first to encourage correct entry
         cols <- unique(c(helper, cols))
       }
-      
+
       # Create a blank data.frame with headers and preallocated blank rows
       df <- as.data.frame(setNames(replicate(length(cols), NA, simplify = FALSE), cols))
       df <- df[rep(1, n_blank_rows), , drop = FALSE]
       df[,] <- NA
-      
+
       file <- file.path(out_dir, paste0(tbl, ".xlsx"))
-      
+
       wb <- openxlsx::createWorkbook()
-      
+
       # Main sheet
       openxlsx::addWorksheet(wb, sheetName = tbl)
       openxlsx::writeData(wb, sheet = tbl, x = df, withFilter = TRUE)
       openxlsx::freezePane(wb, sheet = tbl, firstRow = TRUE)
-      
+
       # Style header
       openxlsx::addStyle(
         wb, tbl,
@@ -67,7 +67,7 @@ write_templates <- function(out_dir,
         rows = 1, cols = seq_along(cols),
         gridExpand = TRUE
       )
-      
+
       # Edge-specific enhancements
       if (identical(tbl, "edge")) {
         # Instructions sheet
@@ -85,18 +85,18 @@ write_templates <- function(out_dir,
         )
         openxlsx::writeData(wb, "INSTRUCTIONS", instructions, colNames = TRUE)
         openxlsx::setColWidths(wb, "INSTRUCTIONS", cols = 1:2, widths = c(20, 120))
-        
+
         # Dropdown validation for edge_type (if provided and column exists)
         if (!is.null(edge_types) && "edge_type" %in% cols) {
           # Create a hidden sheet with allowed edge types
           openxlsx::addWorksheet(wb, "._lists")
           openxlsx::writeData(wb, "._lists", x = data.frame(edge_type = edge_types))
           openxlsx::hideWorksheet(wb, "._lists")
-          
+
           # Apply validation to edge_type column for the data rows (2..n_blank_rows+1)
           edge_type_col <- which(cols == "edge_type")
           data_rows <- 2:(n_blank_rows + 1)
-          
+
           openxlsx::dataValidation(
             wb, sheet = tbl,
             cols = edge_type_col, rows = data_rows,
@@ -109,11 +109,11 @@ write_templates <- function(out_dir,
           )
         }
       }
-      
+
       openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
       written <- c(written, file)
     }
-    
+
     # Bundle README
     readme <- file.path(out_dir, "README.txt")
     msg <- c(
@@ -128,7 +128,7 @@ write_templates <- function(out_dir,
       "- Edges may reference objects already in the DB using typed UIDs."
     )
     writeLines(msg, readme)
-    
+
     invisible(written)
   }, path = path, db = db, read_only = read_only)
 }

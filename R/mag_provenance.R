@@ -62,7 +62,7 @@ mag_provenance_con <- function(con, mag_id) {
 #'
 #' @export
 mag_provenance <- function(mag_id, path = NULL, db = "gopheR_db.sqlite", read_only = TRUE) {
-  with_gopher_con(
+  gopheR::with_gopher_con(
     function(con) mag_provenance_con(con, mag_id = mag_id),
     path = path,
     db = db,
