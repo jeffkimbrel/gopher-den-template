@@ -7,6 +7,7 @@ project:
     - samples.qmd
     - mags.qmd
     - graph.qmd
+    - assemblies.qmd
     - appendix-sql.qmd
     - mag/*.qmd
 
@@ -24,6 +25,8 @@ website:
         href: index.html
       - text: "Samples"
         href: samples.html
+      - text: "Assemblies"
+        href: assemblies.html
       - text: "MAGs"
         href: mags.html
       - text: "Graph"

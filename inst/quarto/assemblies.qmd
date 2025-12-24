@@ -1,0 +1,36 @@
+---
+title: "Assemblies"
+editor_options: 
+  chunk_output_type: console
+---
+
+{{< include _setup.qmd >}}
+
+```{r}
+library(tidyverse)
+library(gopheR)
+```
+
+```{r}
+# source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
+
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT
+      a.*,
+      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id
+      --s.*
+    FROM edge e
+    JOIN assembly a
+      ON a.assembly_id = substr(e.child_uid, instr(e.child_uid, ':') + 1)
+  ")
+}) |>
+  summarise(readset_id = paste(readset_id, collapse = ","), .by = -readset_id) |>
+  knitr::kable()
+
+# DT::datatable(
+#   samples,
+#   filter = "top",
+#   options = list(pageLength = 25, scrollX = TRUE)
+# )
+```

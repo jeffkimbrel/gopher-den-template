@@ -22,9 +22,8 @@ with_gopher_con(function(c) {
       (SELECT COUNT(*) FROM edge)     AS edges
   ")
 }) |>
-  pivot_longer(cols = everything()) |>
-  ggplot(aes(x = name, y = value)) +
-    geom_col()
+  pivot_longer(cols = everything(), names_to = "Type", values_to = "Count") |>
+  knitr::kable()
 ```
 
 ## Example query: MAGs in high moisture samples
@@ -66,7 +65,23 @@ with_gopher_con(function(c) {
   labs(x = "Moisture (%)", y = "Number of samples")
 ```
 
+## Sample map
 
-
+```{r}
+with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT s.* 
+    FROM sample as s
+  ")
+}) |>
+  mutate(name = paste(sample_id, site, sep = ", ")) |>
+  leaflet::leaflet() |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |>
+    leaflet::addCircleMarkers(
+      lng = ~longitude, 
+      lat = ~latitude,
+      radius = 6,
+      popup = ~name)
+```
 
 

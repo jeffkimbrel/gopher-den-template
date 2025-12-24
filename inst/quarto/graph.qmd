@@ -60,21 +60,21 @@ graph = e |>
   as.matrix() %>%
   igraph::graph_from_edgelist(directed = T)
 
-df = V(graph)$name |>
+df = igraph::V(graph)$name |>
   enframe() |>
   separate(value, into = c("TYPE", "ID"), sep = ":")
 
-V(graph)$type = df$TYPE
-V(graph)$name = df$ID
+igraph::V(graph)$type = df$TYPE
+igraph::V(graph)$name = df$ID
 
-E(graph)$edge_type = e$edge_type
+igraph::E(graph)$edge_type = e$edge_type
 
 # make a layout so node types stay on the same level
-layers <- as.integer(factor(V(graph)$type, levels = rev(c("sample", "read_set", "assembly", "mag"))))
+layers <- as.integer(factor(igraph::V(graph)$type, levels = rev(c("sample", "read_set", "assembly", "mag"))))
 lay <- igraph::layout_with_sugiyama(graph, layers = layers)$layout
 
 ggraph::ggraph(graph, layout = lay) + # or tree
-  ggraph::geom_edge_diagonal(aes(edge_color = E(graph)$edge_type), linewidth = 2) + 
+  ggraph::geom_edge_diagonal(aes(edge_color = igraph::E(graph)$edge_type), linewidth = 2) + 
   ggraph::geom_node_point(size = 12, pch = 21, aes(fill = type)) + 
   ggraph::geom_node_text(aes(label = name), size = 3) +
   scale_fill_brewer(palette = 8) +
