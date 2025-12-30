@@ -31,25 +31,3 @@ mags %>%
   knitr::kable()
 ```
 
-## Filter MAGs by environmental metadata (moisture)
-
-```{r}
-with_gopher_con(function(c) {
-  gopher_query(c, "
-    SELECT DISTINCT
-      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS mag_id
-    FROM edge e
-    JOIN read_set r
-      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
-    JOIN measurement meas
-      ON meas.sample_id = r.sample_id
-     AND meas.variable = 'moisture'
-    WHERE e.edge_type = 'observed_in'
-      AND meas.value > 50
-    ORDER BY mag_id
-  ")
-}) |>
-  knitr::kable()
-
-# DT::datatable(mags_moist, options = list(pageLength = 25))
-```

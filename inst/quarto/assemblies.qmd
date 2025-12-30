@@ -18,11 +18,11 @@ with_gopher_con(function(c) {
   gopher_query(c, "
     SELECT
       a.*,
-      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id
+      substr(e.parent_id, instr(e.parent_id, ':') + 1) AS readset_id
       --s.*
     FROM edge e
     JOIN assembly a
-      ON a.assembly_id = substr(e.child_uid, instr(e.child_uid, ':') + 1)
+      ON a.assembly_id = substr(e.child_id, instr(e.child_id, ':') + 1)
   ")
 }) |>
   summarise(readset_id = paste(readset_id, collapse = ","), .by = -readset_id) |>

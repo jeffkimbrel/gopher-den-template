@@ -1,5 +1,6 @@
 ---
 title: "Graph views"
+date: today
 editor_options: 
   chunk_output_type: console
 ---
@@ -16,9 +17,9 @@ This page reads the `edge` table directly to show provenance-style relationships
 ```{r}
 with_gopher_con(function(c) {
   gopher_query(c, "
-    SELECT edge_type, child_uid, parent_uid, role, weight, pipeline_id, created_at
+    SELECT edge_type, child_id, parent_id, role, weight, pipeline_id, created_at
     FROM edge
-    ORDER BY edge_type, child_uid
+    ORDER BY edge_type, child_id
   ")
 }) |>
   knitr::kable()
@@ -29,20 +30,25 @@ with_gopher_con(function(c) {
 ```{r}
 with_gopher_con(function(c) {
   gopher_query(c, "
-    SELECT
-      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS assembly_id,
-      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id,
-      e.role,
-      r.sample_id,
-      s.biome,
-      s.site
-    FROM edge e
-    JOIN read_set r
-      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
-    JOIN sample s
-      ON s.sample_id = r.sample_id
-    WHERE e.edge_type = 'assembled_from'
-    ORDER BY assembly_id, readset_id
+    SELECT DISTINCT
+      REPLACE(a.child_id,  'assembly:', '')  AS assembly_id,
+      REPLACE(a.parent_id, 'read_set:', '')  AS readset_id,
+      a.role                                 AS role,
+      REPLACE(rs.parent_id, 'sample:', '')   AS sample_id,
+      REPLACE(s.parent_id,  'site:', '')     AS site_id
+    FROM edge AS a
+    JOIN edge AS rs
+      ON rs.child_id = a.parent_id
+    JOIN edge AS s
+      ON s.child_id = rs.parent_id
+    WHERE a.child_id  LIKE 'assembly:%'
+      AND a.parent_id LIKE 'read_set:%'
+      AND a.edge_type = 'assembled_from'
+      AND rs.edge_type = 'collected_from'
+      AND rs.parent_id LIKE 'sample:%'
+      AND s.edge_type  = 'sampled_from'
+      AND s.parent_id  LIKE 'site:%'
+    ORDER BY assembly_id, readset_id, sample_id, site_id;
   ")
 }) |>
   knitr::kable()
@@ -56,7 +62,7 @@ e = with_gopher_con(function(c) {
   tidyr::as_tibble()
 
 graph = e |>
-  select(child_uid, parent_uid) %>%
+  select(child_id, parent_id) %>%
   as.matrix() %>%
   igraph::graph_from_edgelist(directed = T)
 
@@ -70,7 +76,7 @@ igraph::V(graph)$name = df$ID
 igraph::E(graph)$edge_type = e$edge_type
 
 # make a layout so node types stay on the same level
-layers <- as.integer(factor(igraph::V(graph)$type, levels = rev(c("sample", "read_set", "assembly", "mag"))))
+layers <- as.integer(factor(igraph::V(graph)$type, levels = rev(c("study", "site", "sample", "readset", "assembly", "mag"))))
 lay <- igraph::layout_with_sugiyama(graph, layers = layers)$layout
 
 ggraph::ggraph(graph, layout = lay) + # or tree

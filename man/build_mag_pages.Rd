@@ -7,7 +7,7 @@
 build_mag_pages(
   out_dir = "inst/quarto/mag",
   site_root = NULL,
-  db_dir = "data",
+  db_dir = "inst/quarto/data",
   db = "gopheR_db.sqlite",
   template_rel = file.path("inst", "quarto", "mag", "_template_mag.qmd"),
   ...

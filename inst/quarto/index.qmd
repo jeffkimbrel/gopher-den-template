@@ -16,9 +16,10 @@ with_gopher_con(function(c) {
   gopher_query(c, "
     SELECT
       (SELECT COUNT(*) FROM sample)   AS samples,
-      (SELECT COUNT(*) FROM read_set) AS read_sets,
+      (SELECT COUNT(*) FROM readset) AS readsets,
       (SELECT COUNT(*) FROM assembly) AS assemblies,
       (SELECT COUNT(*) FROM mag)      AS mags,
+      (SELECT COUNT(*) FROM object)   AS objects,
       (SELECT COUNT(*) FROM edge)     AS edges
   ")
 }) |>
@@ -32,37 +33,30 @@ with_gopher_con(function(c) {
 with_gopher_con(function(c) {
   gopher_query(c, "
     SELECT DISTINCT
-      substr(e.child_uid, instr(e.child_uid, ':') + 1) AS mag_id
-    FROM edge e
-    JOIN read_set r
-      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
-    JOIN measurement meas
-      ON meas.sample_id = r.sample_id
-     AND meas.variable = 'moisture'
-    WHERE e.edge_type = 'observed_in'
+      REPLACE(e1.child_id,  'mag:',    '') AS mag_id,
+      REPLACE(e2.parent_id, 'sample:', '') AS sample_id,
+      meas.value AS moisture
+    FROM edge AS e1
+    JOIN edge AS e2
+      ON e2.child_id = e1.parent_id
+    JOIN measurement AS meas
+      ON meas.sample_id = REPLACE(e2.parent_id, 'sample:', '')
+    WHERE e1.child_id  LIKE 'mag:%'
+      AND e1.edge_type = 'observed_in'
+      AND e2.edge_type = 'collected_from'
+      AND e2.parent_id LIKE 'sample:%'
+      AND meas.variable = 'moisture'
       AND meas.value > 50
-    ORDER BY mag_id
+    ORDER BY mag_id, sample_id
   ")
 }) |>
+  summarize(
+    MAGs = paste(mag_id, collapse = ", "),
+    moisture = mean(moisture),
+    .by = "sample_id"
+  ) |>
+  arrange(desc(moisture)) |>
   knitr::kable()
-
-```
-
-## Moisture distribution (by sample)
-
-```{r}
-with_gopher_con(function(c) {
-  gopher_query(c, "
-    SELECT s.sample_id, s.biome, s.site, m.value AS moisture
-    FROM measurement m
-    JOIN sample s ON s.sample_id = m.sample_id
-    WHERE m.variable = 'moisture'
-    ORDER BY s.sample_id
-  ")
-}) |>
-  ggplot(aes(x = moisture)) +
-  geom_histogram(bins = 10) +
-  labs(x = "Moisture (%)", y = "Number of samples")
 ```
 
 ## Sample map
@@ -71,17 +65,16 @@ with_gopher_con(function(c) {
 with_gopher_con(function(c) {
   gopher_query(c, "
     SELECT s.* 
-    FROM sample as s
+    FROM site as s
   ")
 }) |>
-  mutate(name = paste(sample_id, site, sep = ", ")) |>
   leaflet::leaflet() |>
     leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |>
     leaflet::addCircleMarkers(
-      lng = ~longitude, 
-      lat = ~latitude,
+      lng = ~as.numeric(longitude), 
+      lat = ~as.numeric(latitude),
       radius = 6,
-      popup = ~name)
+      popup = ~site_id)
 ```
 
 

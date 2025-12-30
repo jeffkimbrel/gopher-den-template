@@ -27,6 +27,8 @@ render_site <- function(site_dir = "inst/quarto", output_dir = NULL) {
     args <- c(args, "--output-dir", normalizePath(output_dir, mustWork = FALSE))
   }
 
+  args <- c(args, "--no-cache")
+
   message("Rendering Quarto site at: ", site_dir)
   status <- system2("quarto", args = args)
 

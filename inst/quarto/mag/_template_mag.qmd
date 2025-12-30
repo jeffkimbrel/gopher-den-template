@@ -33,7 +33,37 @@ with_gopher_con(function(c) {
 ## Provenance (MAG → Assembly → ReadSets → Samples)
 
 ```{r}
-with_gopher_con(function(c) mag_provenance(c, mag_id)) |>
+with_gopher_con(function(c) {
+  gopher_query(
+    c,
+    "
+    SELECT DISTINCT
+      REPLACE(m.child_id,  'mag:', '')        AS mag_id,
+      REPLACE(m.parent_id, 'assembly:', '')  AS assembly_id,
+      REPLACE(a.parent_id, 'read_set:', '')  AS readset_id,
+      a.role                                 AS role,
+      REPLACE(rs.parent_id,'sample:', '')    AS sample_id,
+      REPLACE(s.parent_id, 'site:', '')      AS site,
+      samp.collected_date                    AS collected_date
+    FROM edge AS m
+    JOIN edge AS a
+      ON a.child_id = m.parent_id
+    JOIN edge AS rs
+      ON rs.child_id = a.parent_id
+    JOIN edge AS s
+      ON s.child_id = rs.parent_id
+    JOIN sample AS samp
+      ON samp.sample_id = REPLACE(rs.parent_id, 'sample:', '')
+    WHERE m.child_id  = ?
+      AND m.edge_type = 'binned_from'
+      AND a.edge_type = 'assembled_from'
+      AND rs.edge_type = 'collected_from'
+      AND s.edge_type  = 'sampled_from'
+    ORDER BY assembly_id, readset_id, sample_id
+    ",
+    params = list(paste0("mag:", mag_id))
+  )
+}) |>
   knitr::kable()
 ```
 
@@ -44,30 +74,43 @@ occ <- with_gopher_con(function(c) {
   gopher_query(
     c,
     "
-    SELECT
-      substr(e.child_uid, instr(e.child_uid, ':') + 1)   AS mag_id,
-      substr(e.parent_uid, instr(e.parent_uid, ':') + 1) AS readset_id,
-      r.sample_id,
-      s.site,
-      s.collected_date,
-      s.biome,
-      meas.value AS moisture,
-      meas.unit  AS moisture_unit,
-      e.weight   AS rel_abundance,
-      e.evidence
-    FROM edge e
-    JOIN read_set r
-      ON r.readset_id = substr(e.parent_uid, instr(e.parent_uid, ':') + 1)
-    JOIN sample s
-      ON s.sample_id = r.sample_id
-    LEFT JOIN measurement meas
-      ON meas.sample_id = s.sample_id
-     AND meas.variable = 'moisture'
-    WHERE e.edge_type = 'observed_in'
-      AND e.child_uid = ?
-    ORDER BY rel_abundance DESC
+    SELECT DISTINCT
+      ?                                      AS mag_id,
+      REPLACE(mrs.parent_id, 'read_set:', '')    AS readset_id,
+      REPLACE(rs.parent_id,  'sample:', '')      AS sample_id,
+      REPLACE(s.parent_id,   'site:', '')        AS site,
+      samp.collected_date                        AS collected_date,
+    
+      moist.value                                AS moisture,
+      moist.unit                                 AS moisture_unit,
+    
+      mrs.weight                                 AS rel_abundance,
+      mrs.evidence                               AS evidence
+    
+    FROM edge AS mrs                         -- MAG → read_set (occurrence edge)
+    
+    JOIN edge AS rs
+      ON rs.child_id = mrs.parent_id         -- read_set → sample
+    
+    JOIN edge AS s
+      ON s.child_id = rs.parent_id           -- sample → site
+    
+    JOIN sample AS samp
+      ON samp.sample_id = REPLACE(rs.parent_id, 'sample:', '')
+    
+    LEFT JOIN measurement AS moist
+      ON moist.sample_id = samp.sample_id
+     AND moist.variable  = 'moisture'
+    
+    WHERE mrs.child_id  = ?
+      AND mrs.parent_id LIKE 'readset:%'
+      AND mrs.edge_type = 'observed_in'
+      AND rs.edge_type  = 'collected_from'
+      AND s.edge_type   = 'sampled_from'
+    
+    ORDER BY sample_id, readset_id;
     ",
-    params = list(paste0("mag:", mag_id))
+    params = list(mag_id, paste0("mag:", mag_id))
   )
 })
 
@@ -80,7 +123,7 @@ occ |>
 
 ```{r}
 occ %>%
-  distinct(sample_id, moisture, moisture_unit, biome, site) %>%
+  distinct(sample_id, moisture, moisture_unit, site) %>%
   arrange(desc(moisture)) |>
   knitr::kable()
 ```

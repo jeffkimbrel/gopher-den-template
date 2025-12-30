@@ -8,30 +8,38 @@ editor_options:
 
 ```{r}
 library(tidyverse)
+library(gt)
 library(gopheR)
 ```
 
 ```{r}
-# source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
-
 with_gopher_con(function(c) {
   gopher_query(c, "
     SELECT
       s.*,
+      REPLACE(es.parent_id, 'site:', '')   AS site_id,
+      REPLACE(eu.parent_id, 'study:', '')  AS study_id,
       m.value AS moisture,
       m.unit  AS moisture_unit
     FROM sample s
+    
+    LEFT JOIN edge es
+      ON es.child_id  = 'sample:' || s.sample_id
+     AND es.edge_type = 'sampled_from'
+    
+    LEFT JOIN edge eu
+      ON eu.child_id  = es.parent_id
+     AND eu.edge_type = 'studied_in'
+    
     LEFT JOIN measurement m
       ON m.sample_id = s.sample_id
-     AND m.variable = 'moisture'
-    ORDER BY s.sample_id
+     AND m.variable  = 'moisture'
+    
+    ORDER BY s.sample_id, study_id;
+
   ")
 }) |>
-  knitr::kable()
-
-# DT::datatable(
-#   samples,
-#   filter = "top",
-#   options = list(pageLength = 25, scrollX = TRUE)
-# )
+  dplyr::select(-contains("_uid")) |>
+  gt::gt() |>
+  gt::opt_interactive(use_filters = TRUE)
 ```

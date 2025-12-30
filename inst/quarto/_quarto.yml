@@ -8,7 +8,6 @@ project:
     - mags.qmd
     - graph.qmd
     - assemblies.qmd
-    - appendix-sql.qmd
     - mag/*.qmd
 
 params:
@@ -31,8 +30,6 @@ website:
         href: mags.html
       - text: "Graph"
         href: graph.html
-      - text: "SQL"
-        href: appendix-sql.html
   page-navigation: true
   back-to-top-navigation: true
 

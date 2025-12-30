@@ -5,7 +5,7 @@
 gopher_protected_cols_default <- function() {
   list(
     sample   = c("sample_uid", "created_at", "updated_at"),
-    read_set = c("readset_uid", "created_at", "updated_at"),
+    readset = c("readset_uid", "created_at", "updated_at"),
     assembly = c("assembly_uid", "created_at", "updated_at"),
     measurement = c("measurement_uid", "created_at", "updated_at"),
     edge     = c("edge_uid", "created_at", "updated_at"),
