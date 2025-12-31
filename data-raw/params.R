@@ -21,7 +21,6 @@ usethis::use_data(
   ref_cols,
   id_cols,
   object_tables,
-  internal = TRUE,
   overwrite = TRUE
 )
 
@@ -47,5 +46,6 @@ gopher_additional_cols_default <- list(
   study    = character(0)
 )
 
-usethis::use_data(gopher_additional_cols_default, gopher_protected_cols_default,
-                  internal = TRUE, overwrite = TRUE)
+usethis::use_data(gopher_additional_cols_default,
+                  gopher_protected_cols_default,
+                  overwrite = TRUE)

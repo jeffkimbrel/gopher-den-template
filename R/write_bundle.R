@@ -46,7 +46,7 @@ write_bundle <- function(path,
 
   # SQLite table discovery (via gopher_query)
   gopher_table_names <- function(con) {
-    gopher_query(
+    gopheR::gopher_query(
       con,
       "
       SELECT name
@@ -63,7 +63,7 @@ write_bundle <- function(path,
   gopher_table_cols <- function(con, tbl) {
     assert_safe_table(tbl)
 
-    gopher_query(
+    gopheR::gopher_query(
       con,
       sprintf("SELECT name FROM pragma_table_info('%s') ORDER BY cid;", tbl)
     ) |>

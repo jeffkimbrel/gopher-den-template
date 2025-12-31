@@ -4,7 +4,7 @@
 \alias{ingest_bundle}
 \title{Read, validate, and ingest a filled Excel bundle}
 \usage{
-ingest_bundle(xlsx, quiet = FALSE)
+ingest_bundle(xlsx, insert = FALSE, quiet = FALSE)
 }
 \arguments{
 \item{xlsx}{Path to the filled bundle .xlsx}

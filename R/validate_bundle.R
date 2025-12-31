@@ -55,14 +55,15 @@ validate_bundle_object_ids <- function(bundle,
 
   # check if there are duplicate raw_ids across the table
   dup_across <- ids |>
+    unique() |>
     dplyr::count(raw_id, name = "n") |>
     dplyr::filter(n > 1) |>
     dplyr::mutate(type = "duplicate_across_bundle") |>
     dplyr::select(type, raw_id, n)
 
   # check if the *_id is already in the database
-  existing <- with_gopher_con(path = db_path, db = db_file, read_only = TRUE, .f = \(con) {
-    gopher_query(
+  existing <- gopheR::with_gopher_con(path = db_path, db = db_file, read_only = TRUE, .f = \(con) {
+    gopheR::gopher_query(
       con,
       sprintf("SELECT %s AS object_id FROM %s", object_id_col, object_table)
     ) |>
@@ -76,7 +77,14 @@ validate_bundle_object_ids <- function(bundle,
     dplyr::mutate(type = "already_in_db") |>
     dplyr::select(type, object_id)
 
-  dplyr::bind_rows(dup_within, dup_across, already_in_db)
+  result = dplyr::bind_rows(dup_within, dup_across, already_in_db)
+
+  if (nrow(result) > 0) {
+    print(result)
+    stop("validation error", call. = F)
+  } else {
+    return(result)
+  }
 }
 
 
@@ -117,8 +125,11 @@ validate_bundle_edge_refs <- function(bundle,
 
 
   # (A) object_ids that already exist in the DB
-  existing <- with_gopher_con(path = db_path, db = db_file, read_only = TRUE, .f = \(con) {
-    gopher_query(con, sprintf("SELECT %s AS object_id FROM %s", object_id_col, object_table)) |>
+  existing <- gopheR::with_gopher_con(\(con) {
+    gopheR::gopher_query(
+      con,
+      sprintf("SELECT %s AS object_id FROM %s", object_id_col, object_table)
+    ) |>
       dplyr::pull(object_id) |>
       unique()
   })
@@ -143,7 +154,7 @@ validate_bundle_edge_refs <- function(bundle,
   valid <- union(existing, bundle_ids)
 
   # (C) validate refs for each configured column
-  issues <- purrr::imap_dfr(ref_cols, \(col_map, sheet) {
+  result <- purrr::imap_dfr(ref_cols, \(col_map, sheet) {
     df <- bundle[[sheet]]
     if (is.null(df)) return(tibble::tibble())
 
@@ -168,7 +179,12 @@ validate_bundle_edge_refs <- function(bundle,
     })
   })
 
-  issues
+  if (nrow(result) > 0) {
+    print(result)
+    stop("validation error", call. = F)
+  } else {
+    return(result)
+  }
 }
 
 

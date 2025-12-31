@@ -7,6 +7,7 @@
 
 ingest_bundle <- function(
   xlsx,
+  insert = FALSE,
   quiet = FALSE
 ) {
 
@@ -30,27 +31,30 @@ ingest_bundle <- function(
 
 
 
+  if (insert == TRUE) {
+    # after all validation is done
+    if (!quiet) message("Inserting objects...")
+    obj_res <- insert_objects(object_rows)
 
-  # after all validation is done
-  if (!quiet) message("Inserting objects...")
-  obj_res <- insert_objects(object_rows)
 
 
+    if (!quiet) {
+      # obj_res is invisible(list(summary=..., object_rows=...)) from our implementation
+      # printing a nice one-liner is handy
+      try(
+        {
+          msg <- paste0(obj_res$summary$object_type, "=", obj_res$summary$n, collapse = ", ")
+          message("Objects ingested: ", msg)
+        },
+        silent = TRUE
+      )
+    }
 
-  if (!quiet) {
-    # obj_res is invisible(list(summary=..., object_rows=...)) from our implementation
-    # printing a nice one-liner is handy
-    try(
-      {
-        msg <- paste0(obj_res$summary$object_type, "=", obj_res$summary$n, collapse = ", ")
-        message("Objects ingested: ", msg)
-      },
-      silent = TRUE
-    )
+    invisible(list(
+      bundle = bundle,
+      objects = obj_res
+    ))
+  } else {
+    message("Test run only...")
   }
-
-  invisible(list(
-    bundle = bundle,
-    objects = obj_res
-  ))
 }

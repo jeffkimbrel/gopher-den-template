@@ -20,7 +20,7 @@ read_bundle <- function(xlsx,
   }
 
   # verify the sheet names are truly found in the database
-  with_gopher_con(path = db_path,
+  gopheR::with_gopher_con(path = db_path,
                   db = db_file,
                   read_only = TRUE,
                   .f = \(con) {
@@ -150,7 +150,7 @@ insert_objects <- function(object_rows) {
 
   if (nrow(object_rows) == 0) return(invisible(object_rows))
 
-  with_gopher_con(function(c) {
+  gopheR::with_gopher_con(function(c) {
 
     if (!DBI::dbIsValid(c)) {
       stop("Invalid or closed gopher database connection.", call. = FALSE)
