@@ -2,9 +2,11 @@ write_bundle <- function(path,
                          tables = NULL,
                          protected = NULL,
                          overwrite = TRUE,
+                         excluded = c("object"),
                          db_path = NULL,
                          db_file = getOption("gopheR.db_file", "gopheR_db.sqlite"),
                          read_only = TRUE) {
+
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.logical(overwrite), length(overwrite) == 1)
 
@@ -69,7 +71,7 @@ write_bundle <- function(path,
   }
 
   # ---- 3) Query schema + build sheets inside with_gopher_con()
-  sheets <- with_gopher_con(
+  sheets <- gopheR::with_gopher_con(
     path = db_path,
     db = db_file,
     read_only = read_only,
@@ -77,15 +79,20 @@ write_bundle <- function(path,
       tbls <- tables
       if (is.null(tbls)) tbls <- gopher_table_names(con)
 
+      tbls = setdiff(tbls, excluded)
+
       tbls |>
         purrr::set_names() |>
         purrr::map(\(tbl) {
           cols <- gopher_table_cols(con, tbl)
 
-          # Your package-level default function from earlier chat:
           # protected_cols_for(table, protected = protected)
           protected_tbl <- protected_cols_for(tbl, protected = protected)
           editable <- setdiff(cols, protected_tbl)
+
+          # add additional columns
+          editable <- c(editable, additional_cols_for(tbl))
+
 
           if (length(editable) == 0) {
             tibble::tibble(.note = "No editable columns for this table.")
@@ -98,4 +105,42 @@ write_bundle <- function(path,
 
   openxlsx::write.xlsx(sheets, out_path, overwrite = overwrite)
   invisible(out_path)
+}
+
+
+
+
+
+
+
+#' @keywords internal
+
+protected_cols_for <- function(table, protected = NULL) {
+  defaults <- gopher_protected_cols_default
+
+  user_tbl <- protected[[table]]
+  default_tbl <- defaults[[table]]
+
+  if (is.null(default_tbl)) default_tbl <- character(0)
+  if (is.null(user_tbl)) user_tbl <- character(0)
+
+  # user entries ADD to defaults (can’t “unprotect” in v1)
+  union(default_tbl, user_tbl)
+}
+
+
+
+#' @keywords internal
+
+additional_cols_for <- function(table, protected = NULL) {
+  defaults <- gopher_additional_cols_default
+
+  user_tbl <- protected[[table]]
+  default_tbl <- defaults[[table]]
+
+  if (is.null(default_tbl)) default_tbl <- character(0)
+  if (is.null(user_tbl)) user_tbl <- character(0)
+
+  # user entries ADD to defaults (can’t “unprotect” in v1)
+  union(default_tbl, user_tbl)
 }

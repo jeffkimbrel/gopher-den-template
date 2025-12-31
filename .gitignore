@@ -8,3 +8,4 @@
 /.quarto/
 _site/
 inst/quarto/mag/M*qmd
+inst/quarto/data/gopheR_db copy.sqlite
