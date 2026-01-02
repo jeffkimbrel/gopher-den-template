@@ -2,5 +2,6 @@
 
 export(build_mag_pages)
 export(gopher_table_names)
+export(insert_types)
 export(read_bundle)
 export(render_site)

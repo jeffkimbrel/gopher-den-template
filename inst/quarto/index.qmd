@@ -40,14 +40,14 @@ with_gopher_con(function(c) {
     JOIN edge AS e2
       ON e2.child_id = e1.parent_id
     JOIN measurement AS meas
-      ON meas.sample_id = REPLACE(e2.parent_id, 'sample:', '')
+      ON meas.object_id = e2.parent_id
     WHERE e1.child_id  LIKE 'mag:%'
       AND e1.edge_type = 'observed_in'
       AND e2.edge_type = 'collected_from'
       AND e2.parent_id LIKE 'sample:%'
-      AND meas.variable = 'moisture'
+      AND meas.key = 'moisture'
       AND meas.value > 50
-    ORDER BY mag_id, sample_id
+    ORDER BY mag_id, sample_id;
   ")
 }) |>
   summarize(

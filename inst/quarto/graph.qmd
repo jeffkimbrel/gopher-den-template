@@ -28,11 +28,11 @@ with_gopher_con(function(c) {
 ## Quick provenance: which assemblies feed which samples?
 
 ```{r}
-with_gopher_con(function(c) {
-  gopher_query(c, "
+gopheR::with_gopher_con(function(c) {
+  gopheR::gopher_query(c, "
     SELECT DISTINCT
       REPLACE(a.child_id,  'assembly:', '')  AS assembly_id,
-      REPLACE(a.parent_id, 'read_set:', '')  AS readset_id,
+      REPLACE(a.parent_id, 'readset:', '')  AS readset_id,
       a.role                                 AS role,
       REPLACE(rs.parent_id, 'sample:', '')   AS sample_id,
       REPLACE(s.parent_id,  'site:', '')     AS site_id
@@ -42,7 +42,7 @@ with_gopher_con(function(c) {
     JOIN edge AS s
       ON s.child_id = rs.parent_id
     WHERE a.child_id  LIKE 'assembly:%'
-      AND a.parent_id LIKE 'read_set:%'
+      AND a.parent_id LIKE 'readset:%'
       AND a.edge_type = 'assembled_from'
       AND rs.edge_type = 'collected_from'
       AND rs.parent_id LIKE 'sample:%'

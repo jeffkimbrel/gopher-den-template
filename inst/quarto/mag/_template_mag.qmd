@@ -57,7 +57,7 @@ with_gopher_con(function(c) {
     WHERE m.child_id  = ?
       AND m.edge_type = 'binned_from'
       AND a.edge_type = 'assembled_from'
-      AND rs.edge_type = 'collected_from'
+      AND rs.edge_type = 'sequenced_from'
       AND s.edge_type  = 'sampled_from'
     ORDER BY assembly_id, readset_id, sample_id
     ",
@@ -99,13 +99,13 @@ occ <- with_gopher_con(function(c) {
       ON samp.sample_id = REPLACE(rs.parent_id, 'sample:', '')
     
     LEFT JOIN measurement AS moist
-      ON moist.sample_id = samp.sample_id
-     AND moist.variable  = 'moisture'
+      ON moist.object_id = samp.sample_id
+     AND moist.key  = 'moisture'
     
     WHERE mrs.child_id  = ?
       AND mrs.parent_id LIKE 'readset:%'
       AND mrs.edge_type = 'observed_in'
-      AND rs.edge_type  = 'collected_from'
+      AND rs.edge_type  = 'sequenced_from'
       AND s.edge_type   = 'sampled_from'
     
     ORDER BY sample_id, readset_id;

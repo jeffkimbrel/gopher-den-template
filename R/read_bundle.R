@@ -226,3 +226,63 @@ insert_objects <- function(object_rows) {
 
   # invisible(object_rows)
 }
+
+
+
+
+
+insert_edges <- function(edge_rows, quiet = FALSE) {
+
+  stopifnot(is.data.frame(edge_rows))
+
+  req <- c("parent_id", "child_id", "edge_type")
+  miss <- setdiff(req, names(edge_rows))
+
+  if (length(miss)) {
+    stop("edge_rows missing columns: ", paste(miss, collapse = ", "), call. = FALSE)
+  }
+
+  # Normalize to character
+  edge_rows <- edge_rows |>
+    dplyr::mutate(
+      parent_id = as.character(parent_id),
+      child_id  = as.character(child_id),
+      edge_type = as.character(edge_type)
+    )
+
+  # Deterministic UID per edge
+  edge_rows <- edge_rows |>
+    dplyr::rowwise() |>
+    dplyr::mutate(edge_uid = make_object_uid(paste(parent_id, child_id, edge_type, sep = "|")))
+
+  # Guard: duplicates inside the batch (same uid)
+  dup_uids <- edge_rows$edge_uid[duplicated(edge_rows$edge_uid)]
+  if (length(dup_uids) > 0) {
+    ex <- edge_rows |> dplyr::filter(edge_uid %in% unique(dup_uids)) |> dplyr::slice_head(n = 10)
+    stop(
+      "Duplicate edges in incoming edge_rows (same edge_uid). ",
+      "First few duplicates:\n",
+      paste(capture.output(print(ex)), collapse = "\n"),
+      call. = FALSE
+    )
+  }
+
+  res <- gopheR::with_gopher_con(function(con) {
+    # detect which columns exist in DB edge table, and only write those
+    cols <- gopheR::gopher_query(con, "PRAGMA table_info(edge)")$name
+
+    out <- edge_rows
+
+    # Keep only columns that exist in the DB table
+    out <- out[, intersect(names(out), cols), drop = FALSE]
+
+    # Insert (let DB constraints handle duplicates against existing rows)
+    DBI::dbWriteTable(con, "edge", out, append = TRUE)
+
+    out
+  })
+
+  if (!quiet) message("Edges inserted: ", nrow(res))
+
+  invisible(list(n = nrow(res), edge_rows = res))
+}

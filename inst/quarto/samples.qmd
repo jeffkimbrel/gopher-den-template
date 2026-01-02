@@ -32,8 +32,8 @@ with_gopher_con(function(c) {
      AND eu.edge_type = 'studied_in'
     
     LEFT JOIN measurement m
-      ON m.sample_id = s.sample_id
-     AND m.variable  = 'moisture'
+      ON m.object_id = s.sample_id
+     AND m.key  = 'moisture'
     
     ORDER BY s.sample_id, study_id;
 

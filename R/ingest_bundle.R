@@ -24,10 +24,12 @@ ingest_bundle <- function(
   object_rows <- bundle_to_object_rows(bundle, id_cols)
 
 
+  # build edges
+  if (!quiet) message("Building edges...")
+  edge_rows <- bundle_to_edge_rows(bundle)
 
-
-
-
+  if (!quiet) message("Validating edge endpoints exist in objects...")
+  validate_edge_endpoints_exist(edge_rows, object_rows)
 
 
 
@@ -35,7 +37,13 @@ ingest_bundle <- function(
     # after all validation is done
     if (!quiet) message("Inserting objects...")
     obj_res <- insert_objects(object_rows)
-
+    edge_res <- insert_edges(edge_rows)
+    types_res = insert_types(bundle)
+    results_res = insert_results(
+      bundle,
+      run_tables = c("qc_run", "taxonomy_run"),
+      tables     = c("qc", "taxonomy", "measurement")
+    )
 
 
     if (!quiet) {

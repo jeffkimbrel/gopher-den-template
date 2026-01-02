@@ -41,7 +41,7 @@ gopher_additional_cols_default <- list(
   assembly = c("assembled_from"),
   mag      = c("binned_from", "observed_in"),
   readset  = c("sequenced_from"),
-  sample   = c("sampled_from"),
+  sample   = c("sampled_from", "studied_in", "derived_from"),
   site     = c("studied_in"),
   study    = character(0)
 )
