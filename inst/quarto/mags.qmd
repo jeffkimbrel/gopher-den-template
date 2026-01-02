@@ -1,5 +1,6 @@
 ---
 title: "MAGs"
+date: today
 editor_options: 
   chunk_output_type: console
 ---
@@ -11,14 +12,27 @@ library(tidyverse)
 library(gopheR)
 ```
 
+## MAG QC
+
 ```{r}
 # source(file.path(rprojroot::find_rstudio_root_file(), "R", "_common.R"))
 
 mags <- with_gopher_con(function(c) {
   gopher_query(c, "
-    SELECT *
-    FROM mag
-    ORDER BY completeness DESC
+    SELECT
+      m.mag_id,
+      m.fasta_path,
+      r.tool,
+      r.tool_version,
+      q.completeness,
+      q.contamination
+    FROM mag AS m
+    LEFT JOIN mag_qc AS q
+      ON q.object_id = ('mag:' || m.mag_id)
+    LEFT JOIN mag_qc_run AS r
+      ON r.run_id = q.run_id
+    ORDER BY m.mag_id;
+
   ")
 }) %>%
   mutate(profile = glue::glue("[{mag_id}](mag/{mag_id}.html)"))
@@ -27,7 +41,42 @@ mags %>%
   mutate(
     MAG = glue::glue('<a href="mag/{mag_id}.html">{mag_id}</a>')
   ) %>%
-  select(MAG, completeness, contamination, taxonomy) |>
+  mutate(tool_version = paste(tool, tool_version, sep = " v")) |>
+  select(MAG, completeness, contamination, tool_version) |>
   knitr::kable()
 ```
+
+## MAG Taxonomy
+
+```{r}
+mags <- with_gopher_con(function(c) {
+  gopher_query(c, "
+    SELECT
+      m.mag_id,
+      m.fasta_path,
+      r.tool,
+  	  r.tool_version,
+  	  r.db_version,
+      t.taxonomy_string
+    FROM mag AS m
+    LEFT JOIN mag_taxonomy AS t
+      ON t.object_id = ('mag:' || m.mag_id)
+    LEFT JOIN mag_taxonomy_run AS r
+      ON r.run_id = t.run_id
+    ORDER BY m.mag_id;
+  ")
+}) %>%
+  mutate(profile = glue::glue("[{mag_id}](mag/{mag_id}.html)"))
+
+mags %>%
+  mutate(
+    MAG = glue::glue('<a href="mag/{mag_id}.html">{mag_id}</a>')
+  ) %>%
+  mutate(tool_version = paste(tool, tool_version, sep = " v")) |>
+  select(MAG, tool_version, db_version, taxonomy_string) |>
+  knitr::kable()
+```
+
+
+
 

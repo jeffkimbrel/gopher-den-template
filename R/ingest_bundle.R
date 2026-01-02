@@ -41,8 +41,8 @@ ingest_bundle <- function(
     types_res = insert_types(bundle)
     results_res = insert_results(
       bundle,
-      run_tables = c("qc_run", "taxonomy_run"),
-      tables     = c("qc", "taxonomy", "measurement")
+      run_tables = c("mag_qc_run", "mag_taxonomy_run"),
+      tables     = c("mag_qc", "mag_taxonomy", "measurement")
     )
 
 

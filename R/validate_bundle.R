@@ -62,7 +62,7 @@ validate_bundle_object_ids <- function(bundle,
     dplyr::select(type, raw_id, n)
 
   # check if the *_id is already in the database
-  existing <- gopheR::with_gopher_con(path = db_path, db = db_file, read_only = TRUE, .f = \(con) {
+  existing <- gopheR::with_gopher_con(function(con) {
     gopheR::gopher_query(
       con,
       sprintf("SELECT %s AS object_id FROM %s", object_id_col, object_table)
@@ -210,9 +210,7 @@ bundle_to_edge_rows <- function(bundle, split_pattern = "\\s*,\\s*", quiet = F) 
     parts[nzchar(parts)]
   }
 
-  # -------------------------
   # 1) inferred edges (your existing logic)
-  # -------------------------
   inferred <- purrr::imap_dfr(ref_cols, function(edge_map, source_tbl) {
     df <- bundle[[source_tbl]]
     if (is.null(df)) return(tibble::tibble())
@@ -226,11 +224,23 @@ bundle_to_edge_rows <- function(bundle, split_pattern = "\\s*,\\s*", quiet = F) 
       )
     }
 
+    # edge columns that exist in this df
     edge_cols <- intersect(names(edge_map), names(df))
+    if (length(edge_cols) == 0) return(tibble::tibble())
+
+    # (optional) drop edge cols that are completely empty/blank
+    edge_cols <- edge_cols[
+      vapply(df[edge_cols], function(x) {
+        x <- as.character(x)
+        any(!is.na(x) & nzchar(trimws(x)))
+      }, logical(1))
+    ]
     if (length(edge_cols) == 0) return(tibble::tibble())
 
     long <- df |>
       dplyr::select(dplyr::all_of(c(source_id_col, edge_cols))) |>
+      # critical: make pivoted cols consistent type (avoids char/double conflicts)
+      dplyr::mutate(dplyr::across(dplyr::all_of(edge_cols), as.character)) |>
       tidyr::pivot_longer(
         cols = dplyr::all_of(edge_cols),
         names_to = "edge_type",
@@ -276,14 +286,13 @@ bundle_to_edge_rows <- function(bundle, split_pattern = "\\s*,\\s*", quiet = F) 
     dplyr::filter(!is.na(child_id),  nzchar(child_id)) |>
     dplyr::distinct()
 
-  # -------------------------
   # 2) explicit edges from edge sheet (optional)
-  # -------------------------
   edge_sheet_name <- dplyr::case_when(
     "edge"  %in% names(bundle) ~ "edge",
     "edges" %in% names(bundle) ~ "edges",
     TRUE ~ NA_character_
   )
+
 
   explicit <- tibble::tibble()
 
@@ -384,10 +393,8 @@ bundle_to_edge_rows <- function(bundle, split_pattern = "\\s*,\\s*", quiet = F) 
     }
   }
 
-  # -------------------------
   # 3) precedence merge: explicit edge sheet overrides inferred
   #    (same parent_id, child_id, edge_type)
-  # -------------------------
   if (nrow(explicit) == 0) return(inferred)
 
   # Make sure inferred has any extra columns explicit might have (fill with NA)

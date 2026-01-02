@@ -1,11 +1,23 @@
 write_bundle <- function(path,
                          tables = NULL,
+                         sheet_order = c("study",
+                                         "site",
+                                         "sample",
+                                         "readset",
+                                         "assembly",
+                                         "mag",
+                                         "measurement",
+                                         "qc",
+                                         "qc_run",
+                                         "taxonomy",
+                                         "test",
+                                         "taxonomy_run",
+                                         "edge"),
                          protected = NULL,
                          overwrite = TRUE,
                          excluded = c("object"),
                          db_path = NULL,
-                         db_file = getOption("gopheR.db_file", "gopheR_db.sqlite"),
-                         read_only = TRUE) {
+                         db_file = getOption("gopheR.db_file", "gopheR_db.sqlite")) {
 
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.logical(overwrite), length(overwrite) == 1)
@@ -74,7 +86,7 @@ write_bundle <- function(path,
   sheets <- gopheR::with_gopher_con(
     path = db_path,
     db = db_file,
-    read_only = read_only,
+    read_only = TRUE,
     .f = \(con) {
       tbls <- tables
       if (is.null(tbls)) tbls <- gopher_table_names(con)
@@ -102,6 +114,26 @@ write_bundle <- function(path,
         })
     }
   )
+
+  order_sheet_list <- function(sheet_list, sheet_order) {
+    stopifnot(is.list(sheet_list), !is.null(names(sheet_list)))
+    stopifnot(is.character(sheet_order))
+
+    nm <- names(sheet_list)
+
+    # names in preferred order that actually exist
+    in_order <- sheet_order[sheet_order %in% nm]
+
+    # any remaining sheets not mentioned in sheet_order
+    leftovers <- setdiff(nm, sheet_order)
+
+    sheet_list[c(in_order, leftovers)]
+  }
+
+  # order them logically
+  sheets <- order_sheet_list(sheets, sheet_order)
+
+
 
   openxlsx::write.xlsx(sheets, out_path, overwrite = overwrite)
   invisible(out_path)

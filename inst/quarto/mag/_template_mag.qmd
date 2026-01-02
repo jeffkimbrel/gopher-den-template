@@ -1,5 +1,6 @@
 ---
 title: "MAG {{< meta mag_id >}}"
+date: today
 params:
   mag_id: "M001"
 editor_options: 

@@ -26,14 +26,18 @@ usethis::use_data(
 
 ####
 gopher_protected_cols_default <- list(
-  assembly = c("created_at", "modified_at"),
-  mag      = c("created_at", "modified_at"),
-  readset =  c("created_at", "modified_at"),
-  sample   = c("created_at", "modified_at"),
-  site =     c("created_at", "modified_at"),
-  study = c("created_at", "modified_at"),
-  measurement = c("created_at", "modified_at"),
-  edge     = c("created_at", "modified_at", "edge_uid")
+  assembly = c("created_at"),
+  mag      = c("created_at"),
+  readset =  c("created_at"),
+  sample   = c("created_at"),
+  site =     c("created_at"),
+  study = c("created_at"),
+  measurement = c("created_at", "measurement_uid"),
+  edge     = c("created_at", "edge_uid"),
+  mag_qc = c("created_at", "qc_uid"),
+  mag_qc_run = c("created_at"),
+  mag_taxonomy = c("created_at", "taxonomy_uid"),
+  mag_taxonomy_run = c("created_at")
 )
 
 
