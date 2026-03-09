@@ -22,12 +22,14 @@ with_gopher_con(function(c) {
     ORDER BY edge_type, child_id
   ")
 }) |>
-  knitr::kable()
+  DT::datatable()
 ```
 
-## Quick provenance: which assemblies feed which samples?
 
 ```{r}
+#| eval: false
+## Quick provenance: which assemblies feed which samples?
+
 gopheR::with_gopher_con(function(c) {
   gopheR::gopher_query(c, "
     SELECT DISTINCT
